@@ -1,0 +1,50 @@
+# --- GLOBAL DENY ---
+# Exclude all top-level directories by default
+/*
+
+# --- ALLOW LIST (Comment out to include in AI Context) ---
+# Un-comment the specific directory you are currently working in:
+!/src
+# !/ProjectName.Web
+# !/api
+# !/scripts
+
+# --- OS & GENERAL JUNK ---
+.DS_Store
+Thumbs.db
+*.zip
+*.tar.gz
+*.7z
+*.tmp
+
+# --- .NET ARTIFACTS ---
+[Bb]in/
+[Oo]bj/
+*.dll
+*.exe
+*.pdb
+*.user
+*.suo
+.vs/
+.vscode/
+
+# --- NODE.JS ARTIFACTS ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+.env
+
+# --- PYTHON ARTIFACTS ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+*.egg-info/
+.pytest_cache/
