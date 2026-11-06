@@ -70,14 +70,14 @@ function filterByTags(items, tags) {
   return items.filter((i) => tags.every((t) => i.tags.includes(t)));
 }
 
-function noMatchReply(phone, tags) {
-  const available = tagCounts(phone).map((t) => '#' + t.tag);
+async function noMatchReply(phone, tags) {
+  const available = (await tagCounts(phone)).map((t) => '#' + t.tag);
   return `No items tagged ${tags.map((t) => '#' + t).join(' + ')}.` +
     (available.length ? `\nYour tags: ${available.join(' ')}` : '\nYou have no tags yet. Try *tag* pasta #veg');
 }
 
 /** Takes the sender's phone and message text, returns the reply text. */
-export function handleMessage(phone, rawText) {
+export async function handleMessage(phone, rawText) {
   const text = rawText.trim();
   const match = text.match(/^(\w+)\s*:?\s*([\s\S]*)$/);
   const cmd = (match?.[1] || '').toLowerCase();
@@ -87,7 +87,7 @@ export function handleMessage(phone, rawText) {
     case 'add': {
       const entries = parseEntries(args);
       if (!entries.length) return 'Tell me what to add, e.g. *add* dal tadka #veg, pasta';
-      const { added, existing } = addItems(phone, entries);
+      const { added, existing } = await addItems(phone, entries);
       const tagged = entries.filter((e) => e.tags.length);
       let reply = added.length ? `✅ Added: ${added.join(', ')}` : 'No new items.';
       if (existing.length) reply += `\n(Already on your menu: ${existing.join(', ')})`;
@@ -99,29 +99,31 @@ export function handleMessage(phone, rawText) {
     case 'untag': {
       const { name, tags } = parseTagCommand(args);
       if (!name || !tags.length) return `Usage: *${cmd}* pasta #veg #quick`;
-      const item = findItem(phone, name);
+      const item = await findItem(phone, name);
       if (!item) return `❓ ${name} isn't on your menu. Add it with *add* ${name}`;
       if (cmd === 'tag') {
-        addTags(item.id, tags);
-      } else if (removeTags(item.id, tags) === 0) {
+        await addTags(item.id, tags);
+      } else if ((await removeTags(item.id, tags)) === 0) {
         return `${item.name} didn't have ${tags.map((t) => '#' + t).join(' ')}.`;
       }
-      const updated = listItems(phone).find((i) => i.id === item.id);
+      const updated = (await listItems(phone)).find((i) => i.id === item.id);
       return `🏷️ ${fmtItem(updated)}`;
     }
 
     case 'remove':
     case 'delete': {
       if (!args) return 'Tell me what to remove, e.g. *remove* pasta';
-      return parseEntries(args)
-        .map(({ name }) => (removeItem(phone, name) ? `🗑️ ${name}` : `❓ ${name} not found`))
-        .join('\n');
+      const lines = [];
+      for (const { name } of parseEntries(args)) {
+        lines.push((await removeItem(phone, name)) ? `🗑️ ${name}` : `❓ ${name} not found`);
+      }
+      return lines.join('\n');
     }
 
     case 'menu':
     case 'list': {
       const tags = parseTags(args);
-      const all = listItems(phone);
+      const all = await listItems(phone);
       if (!all.length) return 'Your menu is empty. Start with *add* item1 #tag, item2';
       const items = filterByTags(all, tags);
       if (!items.length) return noMatchReply(phone, tags);
@@ -130,7 +132,7 @@ export function handleMessage(phone, rawText) {
     }
 
     case 'tags': {
-      const counts = tagCounts(phone);
+      const counts = await tagCounts(phone);
       if (!counts.length) return 'No tags yet. Try *tag* pasta #veg #quick';
       return '🏷️ Your tags:\n' + counts.map((t) => `#${t.tag} (${t.count})`).join('\n');
     }
@@ -138,23 +140,23 @@ export function handleMessage(phone, rawText) {
     case 'suggest':
     case 'today': {
       const tags = parseTags(args);
-      const all = listItems(phone);
+      const all = await listItems(phone);
       if (!all.length) return 'Your menu is empty. Add some items first with *add*.';
       const items = filterByTags(all, tags);
       if (!items.length) return noMatchReply(phone, tags);
       const pick = pickOne(items, COOLDOWN);
-      markSuggested([pick.id]);
+      await markSuggested([pick.id]);
       return `🍲 How about *${pick.name}*?` + (pick.tags.length ? `\n${pick.tags.map((t) => '#' + t).join(' ')}` : '');
     }
 
     case 'week': {
       const tags = parseTags(args);
-      const all = listItems(phone);
+      const all = await listItems(phone);
       if (!all.length) return 'Your menu is empty. Add some items first with *add*.';
       const items = filterByTags(all, tags);
       if (!items.length) return noMatchReply(phone, tags);
       const plan = buildWeek(items);
-      markSuggested([...new Set(plan.map((p) => p.item.id))]);
+      await markSuggested([...new Set(plan.map((p) => p.item.id))]);
       const title = tags.length ? `📅 *Your ${tags.map((t) => '#' + t).join(' + ')} week*` : '📅 *Your week*';
       let reply = title + '\n' + plan.map((p) => `${p.day}: ${p.item.name}`).join('\n');
       if (items.length < 7) reply += `\n\n(Only ${items.length} matching item(s), so some repeat.)`;
@@ -162,7 +164,7 @@ export function handleMessage(phone, rawText) {
     }
 
     case 'clear': {
-      const n = clearItems(phone);
+      const n = await clearItems(phone);
       return `Cleared ${n} item(s).`;
     }
 

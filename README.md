@@ -36,7 +36,16 @@ CREATE TABLE item_tags (
 );
 CREATE INDEX idx_item_tags_tag ON item_tags(tag);
 ```
-Tables are created automatically on startup, so an existing `menu.db` picks up `item_tags` with no manual migration.
+Tables are created automatically on startup, so no manual migration is needed.
+
+## Database (Turso)
+Data is stored in [Turso](https://turso.tech) (hosted libSQL, SQLite-compatible):
+```bash
+turso db create menu-bot
+turso db show menu-bot --url        # → TURSO_DATABASE_URL
+turso db tokens create menu-bot     # → TURSO_AUTH_TOKEN
+```
+If `TURSO_DATABASE_URL` isn't set, the bot uses a local `menu.db` file, which is handy for development.
 
 ## 1. Run locally
 ```bash
@@ -60,11 +69,11 @@ Meta Business Settings and generate a permanent token with `whatsapp_business_me
 
 ## 3. Deploy
 Any Node host works (Render, Railway, Fly.io). Set the same env vars there.
-SQLite needs a persistent disk; on hosts without one, mount a volume or swap `db.js` for Postgres/Supabase.
+Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` there; no persistent disk is needed.
 
 ## Files
 - `src/index.js`: Express server, webhook verification, signature check
 - `src/commands.js`: Command parsing and replies
 - `src/suggest.js`: Suggestion and weekly plan logic
-- `src/db.js`: SQLite storage
+- `src/db.js`: Turso/libSQL storage
 - `src/whatsapp.js`: Sends replies through the Cloud API

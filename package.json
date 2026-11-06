@@ -8,8 +8,11 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"
   },
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "dotenv": "^16.4.0",
     "express": "^4.21.0"
   }

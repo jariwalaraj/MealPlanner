@@ -48,12 +48,11 @@ app.post('/webhook', async (req, res) => {
     for (const msg of messages) {
       if (alreadySeen(msg.id)) continue;
 
-      const reply =
-        msg.type === 'text'
-          ? handleMessage(msg.from, msg.text.body)
-          : 'I only understand text messages. Send *help* to see commands.';
-
       try {
+        const reply =
+          msg.type === 'text'
+            ? await handleMessage(msg.from, msg.text.body)
+            : 'I only understand text messages. Send *help* to see commands.';
         await sendText(msg.from, reply);
       } catch (err) {
         console.error(err.message);
